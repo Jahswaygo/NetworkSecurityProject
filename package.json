@@ -1,0 +1,29 @@
+{
+  "name": "cps714",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "flask-dev1": "pip install -r requirements.txt && python -m flask --app api/index run -p 8080 --debug ",
+    "flask-dev2": "pip3 install -r requirements.txt && python3 -m flask --app api/index run -p 8080 --debug ",
+    "dev": "next dev",
+    "Windev": "concurrently \"pnpm run dev\" \"pnpm run flask-dev1\"",
+    "Macdev": "concurrently \"pnpm run dev\" \"pnpm run flask-dev2\"",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "10.4.14",
+    "concurrently": "^8.0.1",
+    "cps714": "file:",
+    "next": "15.0.2",
+    "postcss": "^8",
+    "react": "19.0.0-rc-02c0e824-20241028",
+    "react-dom": "19.0.0-rc-02c0e824-20241028",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
