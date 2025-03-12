@@ -1,5 +1,5 @@
 {
-  "name": "cps714",
+  "name": "coe892project",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,17 +13,20 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "10.4.14",
+    "coe892project": "file:",
     "concurrently": "^8.0.1",
-    "cps714": "file:",
-    "next": "15.0.2",
+    "next": "^15.0.2",
     "postcss": "^8",
-    "react": "19.0.0-rc-02c0e824-20241028",
-    "react-dom": "19.0.0-rc-02c0e824-20241028",
+    "react": "^19.0.0-rc-02c0e824-20241028",
+    "react-dom": "^19.0.0-rc-02c0e824-20241028",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/prop-types": "^15"
   }
 }
