@@ -1,57 +1,125 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template
 import socket
 import json
+import hmac
+import hashlib
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.fernet import Fernet
+import os
+import sys
 
 app = Flask(__name__)
-client_id = "client1"
-shared_key = Fernet.generate_key()
-fernet = Fernet(shared_key)
 
-HTML = """
-<h2>ATM Client</h2>
-<form action="/action" method="post">
-  Action:
-  <select name="action">
-    <option value="balance">Balance Inquiry</option>
-    <option value="deposit">Deposit</option>
-    <option value="withdraw">Withdraw</option>
-  </select><br>
-  Amount (if any): <input type="number" name="amount"><br>
-  <input type="submit" value="Send">
-</form>
-<p>{{ result }}</p>
-"""
+# Global variables for session keys
+encryption_key = None
+mac_key = None
+
+# Dynamically assign a port and client instance number
+if len(sys.argv) > 1:
+    client_number = int(sys.argv[1])  # Pass the client number as a command-line argument
+else:
+    print("Error: No client number provided. Please pass the client number as a command-line argument.")
+    sys.exit(1)  # Exit the program with an error code
+
+port = 5000 + client_number  # Increment the port based on the client number
+print(f"Starting ATM Client {client_number} on port {port}...")
 
 @app.route('/', methods=['GET'])
 def home():
-    return render_template_string(HTML, result="")
+    return render_template("login.html", result="")
 
-@app.route('/action', methods=['POST'])
-def do_action():
-    action = request.form['action']
-    amount = request.form.get('amount')
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'GET':
+        return render_template("signup.html", result="")
+    
+    username = request.form['username']
+    password = request.form['password']
+
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect(('127.0.0.1', 65432))
-            s.send(client_id.encode())
 
+            # Send signup request to server
+            signup_data = {'action': 'signup', 'username': username, 'password': password}
+            s.send(json.dumps(signup_data).encode())
+
+            # Receive server's response
+            response = s.recv(1024).decode()
+            if response == "Signup Successful":
+                return render_template("login.html", result="Signup Successful. Please log in.")
+            else:
+                return render_template("signup.html", result=response)
+    except Exception as e:
+        return render_template("signup.html", result=f"Error: {str(e)}")
+
+@app.route('/login', methods=['POST'])
+def login():
+    global encryption_key, mac_key
+    username = request.form['username']
+    password = request.form['password']
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(('127.0.0.1', 65432))
+
+            # Send username and password to server
+            credentials = {'action': 'login', 'username': username, 'password': password}
+            s.send(json.dumps(credentials).encode())
+
+            # Receive server's response
             auth_resp = s.recv(1024).decode()
             if auth_resp != "Authenticated":
-                return render_template_string(HTML, result="Authentication Failed")
+                return render_template("login.html", result="Authentication Failed")
 
+            # Receive Master Secret from server
+            master_secret = s.recv(1024)
+
+            # Derive encryption and MAC keys from Master Secret
+            hkdf = HKDF(algorithm=SHA256(), length=64, salt=None, info=b'ATM Session Keys')
+            derived_keys = hkdf.derive(master_secret)
+            encryption_key = derived_keys[:32]
+            mac_key = derived_keys[32:]
+
+            return render_template("action.html", result="Login Successful")
+    except Exception as e:
+        return render_template("login.html", result=f"Error: {str(e)}")
+
+@app.route('/action', methods=['POST'])
+def do_action():
+    global encryption_key, mac_key
+    action = request.form['action']
+    amount = request.form.get('amount')
+
+    if encryption_key is None or mac_key is None:
+        return render_template("login.html", result="Please log in first.")
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect(('127.0.0.1', 65432))
+
+            # Prepare payload
             payload = {'action': action}
             if amount:
                 payload['amount'] = int(amount)
 
+            # Encrypt payload
+            fernet = Fernet(encryption_key)
             encrypted_payload = fernet.encrypt(json.dumps(payload).encode())
-            s.send(encrypted_payload)
 
+            # Generate MAC
+            mac = hmac.new(mac_key, encrypted_payload, hashlib.sha256).hexdigest()
+
+            # Send encrypted payload and MAC
+            s.send(json.dumps({'payload': encrypted_payload.decode(), 'mac': mac}).encode())
+
+            # Receive and decrypt response
             response = s.recv(4096)
-            result = fernet.decrypt(response).decode()
-            return render_template_string(HTML, result=result)
+            decrypted_response = fernet.decrypt(response).decode()
+            return render_template("action.html", result=decrypted_response)
     except Exception as e:
-        return render_template_string(HTML, result=f"Error: {str(e)}")
+        return render_template("action.html", result=f"Error: {str(e)}")
 
 if __name__ == "__main__":
-    app.run(port=5000)
+    app.run(port=port)

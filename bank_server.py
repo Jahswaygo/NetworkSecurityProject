@@ -1,23 +1,25 @@
 import socket
 import threading
 import json
+import hmac
+import hashlib
+import os
+import bcrypt  # Add this import
 from datetime import datetime
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.fernet import Fernet
 
 HOST = '127.0.0.1'
 PORT = 65432
 
-# Mock key storage (pre-shared key for simplicity)
-shared_keys = {
-    "client1": Fernet.generate_key(),
-    "client2": Fernet.generate_key()
-}
+# Mock database
+users = {}  # Store hashed passwords
+accounts = {}
 
 # Audit log encryption key
 audit_key = Fernet.generate_key()
 audit_fernet = Fernet(audit_key)
-
-accounts = {"client1": 1000, "client2": 500}
 
 def log_action(client_id, action):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -28,43 +30,91 @@ def log_action(client_id, action):
 
 def handle_client(conn, addr):
     print(f"[CONNECTED] {addr}")
-    client_id = conn.recv(1024).decode()
-
-    if client_id not in shared_keys:
-        conn.send("Unauthorized client".encode())
-        conn.close()
-        return
-
-    fernet = Fernet(shared_keys[client_id])
-    conn.send("Authenticated".encode())
 
     while True:
         data = conn.recv(4096)
         if not data:
             break
 
-        decrypted_data = fernet.decrypt(data)
-        request = json.loads(decrypted_data.decode())
-        action = request['action']
-        result = ""
+        request = json.loads(data.decode())
+        action = request.get('action')
 
-        if action == 'deposit':
-            amount = request['amount']
-            accounts[client_id] += amount
-            result = f"Deposited ${amount}. New Balance: ${accounts[client_id]}"
-        elif action == 'withdraw':
-            amount = request['amount']
-            if accounts[client_id] >= amount:
-                accounts[client_id] -= amount
-                result = f"Withdrew ${amount}. New Balance: ${accounts[client_id]}"
+        if action == 'signup':
+            username = request['username']
+            password = request['password'].encode()  # Convert to bytes for bcrypt
+
+            if username in users:
+                conn.send("Username already exists".encode())
             else:
-                result = "Insufficient funds"
-        elif action == 'balance':
-            result = f"Current Balance: ${accounts[client_id]}"
+                # Hash the password and store it
+                hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
+                users[username] = hashed_password
+                accounts[username] = 0  # Initialize account balance
+                conn.send("Signup Successful".encode())
 
-        log_action(client_id, action)
-        response = fernet.encrypt(result.encode())
-        conn.send(response)
+        elif action == 'login':
+            username = request['username']
+            password = request['password'].encode()  # Convert to bytes for bcrypt
+
+            if username not in users or not bcrypt.checkpw(password, users[username]):
+                conn.send("Authentication Failed".encode())
+                continue
+
+            conn.send("Authenticated".encode())
+
+            # Generate Master Secret
+            master_secret = os.urandom(32)
+            conn.send(master_secret)
+
+            # Derive encryption and MAC keys
+            hkdf = HKDF(algorithm=SHA256(), length=64, salt=None, info=b'ATM Session Keys')
+            derived_keys = hkdf.derive(master_secret)
+            encryption_key = derived_keys[:32]
+            mac_key = derived_keys[32:]
+
+            fernet = Fernet(encryption_key)
+
+            while True:
+                data = conn.recv(4096)
+                if not data:
+                    break
+
+                # Parse received data
+                received = json.loads(data.decode())
+                encrypted_payload = received['payload'].encode()
+                received_mac = received['mac']
+
+                # Verify MAC
+                mac = hmac.new(mac_key, encrypted_payload, hashlib.sha256).hexdigest()
+                if mac != received_mac:
+                    conn.send(fernet.encrypt(b"MAC verification failed"))
+                    continue
+
+                # Decrypt payload
+                payload = json.loads(fernet.decrypt(encrypted_payload).decode())
+                action = payload['action']
+                result = ""
+
+                # Process action
+                if action == 'deposit':
+                    amount = payload['amount']
+                    accounts[username] += amount
+                    result = f"Deposited ${amount}. New Balance: ${accounts[username]}"
+                elif action == 'withdraw':
+                    amount = payload['amount']
+                    if accounts[username] >= amount:
+                        accounts[username] -= amount
+                        result = f"Withdrew ${amount}. New Balance: ${accounts[username]}"
+                    else:
+                        result = "Insufficient funds"
+                elif action == 'balance':
+                    result = f"Current Balance: ${accounts[username]}"
+
+                # Log action
+                log_action(username, action)
+
+                # Send encrypted response
+                conn.send(fernet.encrypt(result.encode()))
 
     conn.close()
 

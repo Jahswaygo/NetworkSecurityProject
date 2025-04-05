@@ -1,0 +1,12 @@
+<h2>ATM Client</h2>
+<form action="/action" method="post">
+  Action:
+  <select name="action">
+    <option value="balance">Balance Inquiry</option>
+    <option value="deposit">Deposit</option>
+    <option value="withdraw">Withdraw</option></select
+  ><br />
+  Amount (if any): <input type="number" name="amount" /><br />
+  <input type="submit" value="Send" />
+</form>
+<p>{{ result }}</p>
