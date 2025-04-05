@@ -8,12 +8,14 @@ from cryptography.hazmat.primitives.hashes import SHA256
 from cryptography.fernet import Fernet
 import os
 import sys
+import base64
 
 app = Flask(__name__)
 
-# Global variables for session keys
+# Global variables for session keys and socket
 encryption_key = None
 mac_key = None
+client_socket = None  # Persistent socket connection
 
 # Dynamically assign a port and client instance number
 if len(sys.argv) > 1:
@@ -23,6 +25,20 @@ else:
     sys.exit(1)  # Exit the program with an error code
 
 port = 5000 + client_number  # Increment the port based on the client number
+
+# Check if the port is in use
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+        except OSError:
+            return True
+    return False
+
+if is_port_in_use(port):
+    print(f"Error: Port {port} is already in use. Please choose a different client number.")
+    sys.exit(1)
+
 print(f"Starting ATM Client {client_number} on port {port}...")
 
 @app.route('/', methods=['GET'])
@@ -56,68 +72,73 @@ def signup():
 
 @app.route('/login', methods=['POST'])
 def login():
-    global encryption_key, mac_key
+    global encryption_key, mac_key, client_socket
     username = request.form['username']
     password = request.form['password']
 
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect(('127.0.0.1', 65432))
+        # Establish a persistent socket connection
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect(('127.0.0.1', 65432))
 
-            # Send username and password to server
-            credentials = {'action': 'login', 'username': username, 'password': password}
-            s.send(json.dumps(credentials).encode())
+        # Send username and password to server
+        credentials = {'action': 'login', 'username': username, 'password': password}
+        client_socket.send(json.dumps(credentials).encode())
 
-            # Receive server's response
-            auth_resp = s.recv(1024).decode()
-            if auth_resp != "Authenticated":
-                return render_template("login.html", result="Authentication Failed")
+        # Receive server's response
+        auth_resp = client_socket.recv(1024).decode()
+        if auth_resp != "Authenticated":
+            client_socket.close()
+            client_socket = None
+            return render_template("login.html", result="Authentication Failed")
 
-            # Receive Master Secret from server
-            master_secret = s.recv(1024)
+        # Receive Master Secret from server
+        master_secret = client_socket.recv(1024)
 
-            # Derive encryption and MAC keys from Master Secret
-            hkdf = HKDF(algorithm=SHA256(), length=64, salt=None, info=b'ATM Session Keys')
-            derived_keys = hkdf.derive(master_secret)
-            encryption_key = derived_keys[:32]
-            mac_key = derived_keys[32:]
+        # Derive encryption and MAC keys from Master Secret
+        hkdf = HKDF(algorithm=SHA256(), length=64, salt=None, info=b'ATM Session Keys')
+        derived_keys = hkdf.derive(master_secret)
+        encryption_key = base64.urlsafe_b64encode(derived_keys[:32])  # Encode the first 32 bytes
+        mac_key = derived_keys[32:]  # Use the remaining 32 bytes for MAC
 
-            return render_template("action.html", result="Login Successful")
+        return render_template("action.html", result="Login Successful")
     except Exception as e:
+        if client_socket:
+            client_socket.close()
+            client_socket = None
         return render_template("login.html", result=f"Error: {str(e)}")
 
 @app.route('/action', methods=['POST'])
 def do_action():
-    global encryption_key, mac_key
+    global encryption_key, mac_key, client_socket
     action = request.form['action']
     amount = request.form.get('amount')
 
-    if encryption_key is None or mac_key is None:
+    if encryption_key is None or mac_key is None or client_socket is None:
         return render_template("login.html", result="Please log in first.")
 
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect(('127.0.0.1', 65432))
+        # Prepare payload
+        payload = {'action': action}
+        if amount:
+            payload['amount'] = int(amount)
 
-            # Prepare payload
-            payload = {'action': action}
-            if amount:
-                payload['amount'] = int(amount)
+        # Encrypt payload
+        fernet = Fernet(encryption_key)
+        encrypted_payload = fernet.encrypt(json.dumps(payload).encode())
 
-            # Encrypt payload
-            fernet = Fernet(encryption_key)
-            encrypted_payload = fernet.encrypt(json.dumps(payload).encode())
+        # Generate MAC
+        mac = hmac.new(mac_key, encrypted_payload, hashlib.sha256).hexdigest()
 
-            # Generate MAC
-            mac = hmac.new(mac_key, encrypted_payload, hashlib.sha256).hexdigest()
+        # Send encrypted payload and MAC
+        client_socket.send(json.dumps({'payload': encrypted_payload.decode(), 'mac': mac}).encode())
 
-            # Send encrypted payload and MAC
-            s.send(json.dumps({'payload': encrypted_payload.decode(), 'mac': mac}).encode())
-
-            # Receive and decrypt response
-            response = s.recv(4096)
-            decrypted_response = fernet.decrypt(response).decode()
-            return render_template("action.html", result=decrypted_response)
+        # Receive and decrypt response
+        response = client_socket.recv(4096)
+        print(f"[DEBUG] Received encrypted response: {response}")
+        decrypted_response = fernet.decrypt(response).decode()
+        print(f"[DEBUG] Decrypted response: {decrypted_response}")
+        return render_template("action.html", result=decrypted_response)
     except Exception as e:
         return render_template("action.html", result=f"Error: {str(e)}")
 
