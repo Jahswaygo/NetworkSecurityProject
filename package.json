@@ -1,5 +1,5 @@
 {
-  "name": "coe892project",
+  "name": "coe817project",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,7 +16,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "10.4.14",
-    "coe892project": "file:",
+    "coe817project": "file:",
     "concurrently": "^8.0.1",
     "next": "^15.0.2",
     "postcss": "^8",

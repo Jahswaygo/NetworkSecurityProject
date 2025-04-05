@@ -2,7 +2,7 @@
 // MongoDB Playground
 // Use Ctrl+Space inside a snippet or a string literal to trigger completions.
 
-const database = 'CPS714';
+const database = 'COE817';
 const collection = 'Users';
 
 // Select the database to use.
@@ -13,7 +13,7 @@ db.createCollection(collection, {
   validator: {
     $jsonSchema: {
       bsonType: 'object',
-      required: ['fullname', 'username', 'password', 'email', 'phone', 'role', 'loyaltypoints'],
+      required: ['fullname', 'username', 'password', 'email'],
       properties: {
         fullname: {
           bsonType: 'string',
@@ -23,29 +23,13 @@ db.createCollection(collection, {
           bsonType: 'string',
           description: 'must be a string and is required'
         },
-        password: {
-          bsonType: 'string',
-          description: 'must be binary data for a password hash and is required'
-        },
         email: {
           bsonType: 'string',
           description: 'must be a string and is required'
         },
-        phone: {
+        password: {
           bsonType: 'string',
-          description: 'must be a string and is required'
-        },
-        role: {
-          bsonType: 'string',
-          description: 'must be a string and is required'
-        },
-        loyaltypoints: {
-          bsonType: 'number',
-          description: 'must be an integer and defaults to 0 if not provided'
-        },
-        company: {
-          bsonType: 'string',
-          description: 'must be a string and is required'
+          description: 'must be binary data for a password hash and is required'
         }
       }
     }
@@ -60,21 +44,14 @@ try {
   db.getCollection(collection).insertOne({
     fullname: 'Sample Smith',
     username: 'sampleUser',
-    password: 'hash',
-    email: 'user@example.com',
-    phone: '123-456-7890',
-    role: 'Driver',
-    loyaltypoints: 100
+    email: 'stansmith@gmail.com',
+    password: 'hash' 
   });
   db.getCollection(collection).insertOne({
     fullname: 'Gustavo Fring',
     username: 'Gus',
-    password:'2b$12$eHc/yYEE9NCA1V3F9toJjuwgHTgfnLI9wSLkrNIwlbAPzZg6FXu3q',//password is blue
-    email: 'user@example.com',
-    phone: '123-456-7890',
-    role: 'Driver',
-    loyaltypoints: 100,
-    company: 'Los Polos Hermanos'
+    email:'fring@hotmail.com',
+    password:'2b$12$eHc/yYEE9NCA1V3F9toJjuwgHTgfnLI9wSLkrNIwlbAPzZg6FXu3q'//password is blue
   });
   console.log('Collection created with constraints, and sample data inserted successfully.');
 } catch (error) {
