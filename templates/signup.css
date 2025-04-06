@@ -1,0 +1,19 @@
+body {
+    /* existing styles */
+  }
+  
+  input[type="text"], input[type="password"], input[type="submit"] {
+    border-radius: 8px; /* Rounds the corners */
+    padding: 8px; /* Adds some padding for better appearance */
+    border: 1px solid #ccc; /* Optional: Adds a border */
+  }
+  
+  input[type="submit"] {
+    background-color: #007BFF; /* Optional: Adds a background color for the button */
+    color: white; /* Optional: Makes the text color white */
+    cursor: pointer; /* Changes the cursor to a pointer on hover */
+  }
+  
+  input[type="submit"]:hover {
+    background-color: #0056b3; /* Optional: Darkens the button color on hover */
+  }

@@ -1,0 +1,29 @@
+body {
+    display: flex; /* Enables flexbox layout */
+    justify-content: center; /* Horizontally centers content */
+    align-items: center; /* Vertically centers content */
+    height: 100vh; /* Makes the body take up the full viewport height */
+    margin: 0; /* Removes default margin */
+    font-family: Arial, sans-serif; /* Optional: Sets a clean font */
+  }
+  
+  form {
+    text-align: center; /* Centers the text inside the form */
+    padding: 20px; /* Adds padding inside the form */
+    border-radius: 10px; /* Rounds the corners of the form */
+  }
+  
+  input[type="text"], input[type="password"], input[type="submit"], input[type="number"], select {
+    border-radius: 8px; /* Rounds the corners */
+    padding: 8px; /* Adds some padding for better appearance */
+    border: 1px solid #ccc; /* Adds a border */
+    margin: 10px 0; /* Adds spacing between inputs */
+  }
+  
+  input[type="submit"] {
+    cursor: pointer; /* Changes the cursor to a pointer on hover */
+  }
+  
+  input[type="submit"]:hover {
+    background-color: #0056b3;
+  }
