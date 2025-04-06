@@ -108,8 +108,8 @@ def login():
 
         # Store the username in the global variable
         current_username = username
-
         return render_template("action.html", result="Login Successful", username=username)
+    
     except Exception as e:
         if client_socket:
             client_socket.close()

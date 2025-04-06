@@ -48,8 +48,6 @@ def log_action(client_id, action):
 
 def handle_client(conn, addr):
     print(f"[CONNECTED] {addr}")
-    
-#Main Server Loop--------------------------------------------------------
 
     try:
         while True:
@@ -62,6 +60,7 @@ def handle_client(conn, addr):
             # Parse the received data
             request = json.loads(data.decode())
             action = request.get('action')
+            print(f"{addr}: Received action '{action}'")
 
             if action == 'signup':
                 username = request['username']
@@ -70,12 +69,14 @@ def handle_client(conn, addr):
                 with db_lock:  # Synchronize access to the shared resource
                     if username in users:
                         conn.send("Username already exists".encode())
+                        print(f"{addr}: Signup failed - Username already exists")
                     else:
                         # Hash the password and store it
                         hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
                         users[username] = hashed_password
                         accounts[username] = 0  # Initialize account balance
                         conn.send("Signup Successful".encode())
+                        print(f"{addr}: Signup successful for username '{username}'")
 
             elif action == 'login':
                 username = request['username']
@@ -84,9 +85,11 @@ def handle_client(conn, addr):
                 with db_lock:  # Synchronize access to the shared resource
                     if username not in users or not bcrypt.checkpw(password, users[username]):
                         conn.send("Authentication Failed".encode())
+                        print(f"{addr}: Login failed for username '{username}'")
                         continue
 
                 conn.send("Authenticated".encode())
+                print(f"{addr}: Login successful for username '{username}'")
 
                 # Generate Master Secret
                 master_secret = os.urandom(32)
@@ -111,17 +114,20 @@ def handle_client(conn, addr):
                     received = json.loads(data.decode())
                     encrypted_payload = received['payload'].encode()
                     received_mac = received['mac']
+                    print(f"{addr}: Received encrypted payload")
 
                     # Verify MAC
                     mac = hmac.new(mac_key, encrypted_payload, hashlib.sha256).hexdigest()
                     if mac != received_mac:
                         conn.send(fernet.encrypt(b"MAC verification failed"))
+                        print(f"{addr}: MAC verification failed")
                         continue
 
                     # Decrypt payload
                     payload = json.loads(fernet.decrypt(encrypted_payload).decode())
                     action = payload['action']
                     result = ""
+                    print(f"{addr}: Decrypted action '{action}'")
 
                     # Process action
                     with db_lock:  # Synchronize access to the shared resource
@@ -129,16 +135,19 @@ def handle_client(conn, addr):
                             amount = payload['amount']
                             accounts[username] += amount
                             result = f"Deposited ${amount}. New Balance: ${accounts[username]}"
+                            print(f"{addr}: Deposit of ${amount} successful. New balance: ${accounts[username]}")
                         elif action == 'withdraw':
                             amount = payload['amount']
                             if accounts[username] >= amount:
                                 accounts[username] -= amount
                                 result = f"Withdrew ${amount}. New Balance: ${accounts[username]}"
+                                print(f"{addr}: Withdrawal of ${amount} successful. New balance: ${accounts[username]}")
                             else:
                                 result = "Insufficient funds"
+                                print(f"{addr}: Withdrawal of ${amount} failed - Insufficient funds")
                         elif action == 'balance':
-                            print(f"[DEBUG] Processing balance inquiry for {username}")
                             result = f"Current Balance: ${accounts[username]}"
+                            print(f"{addr}: Balance inquiry successful. Current balance: ${accounts[username]}")
                             log_action(username, action)
 
                     # Log action
@@ -146,11 +155,14 @@ def handle_client(conn, addr):
 
                     # Send encrypted response
                     conn.send(fernet.encrypt(result.encode()))
+                    print(f"{addr}: Response sent to client")
 
     except Exception as e:
         print(f"[ERROR] {addr}: {str(e)}")
     finally:
         conn.close()
+        print(f"[CLOSED] {addr}")
+
 #----------------------------------------------------------------------
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
