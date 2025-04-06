@@ -11,13 +11,14 @@ import sys
 import base64
 
 app = Flask(__name__)
+DEFAULT_GATEWAY = '127.0.0.1'
+SERVER_PORT = 65432
 
 # Global variables for session keys and socket
 encryption_key = None
 mac_key = None
 client_socket = None  # Persistent socket connection
-Default_Gateway='127.0.0.1'
-Server_Port=65432
+
 
 # Dynamically assign a port and client instance number
 if len(sys.argv) > 1:
@@ -32,7 +33,7 @@ port = 5000 + client_number  # Increment the port based on the client number
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
-            s.bind((Default_Gateway, port))
+            s.bind((DEFAULT_GATEWAY, port))
         except OSError:
             return True
     return False
@@ -57,7 +58,7 @@ def signup():
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((Default_Gateway, Server_Port))
+            s.connect((DEFAULT_GATEWAY, SERVER_PORT))
 
             # Send signup request to server
             signup_data = {'action': 'signup', 'username': username, 'password': password}
@@ -81,7 +82,7 @@ def login():
     try:
         # Establish a persistent socket connection
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((Default_Gateway, Server_Port))
+        client_socket.connect((DEFAULT_GATEWAY, SERVER_PORT))
 
         # Send username and password to server
         credentials = {'action': 'login', 'username': username, 'password': password}
