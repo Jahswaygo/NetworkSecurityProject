@@ -118,7 +118,7 @@ def handle_client(conn, addr):
 
                     # Verify MAC
                     mac = hmac.new(mac_key, encrypted_payload, hashlib.sha256).hexdigest()
-                    if mac != received_mac:
+                    if mac != received_mac: ## MAC verification failed (message was tampered with)
                         conn.send(fernet.encrypt(b"MAC verification failed"))
                         print(f"{addr}: MAC verification failed")
                         continue
