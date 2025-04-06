@@ -15,10 +15,11 @@ app = Flask(__name__)
 DEFAULT_GATEWAY = '127.0.0.1'
 SERVER_PORT = 65432
 
-# Global variables for session keys and socket
+# Global variables for session keys, socket, and username
 encryption_key = None
 mac_key = None
 client_socket = None  # Persistent socket connection
+current_username = None  # Track the logged-in username
 
 # Dynamically assign a port and client instance number
 if len(sys.argv) > 1:
@@ -41,6 +42,7 @@ def is_port_in_use(port):
 if is_port_in_use(port):
     print(f"Error: Port {port} is already in use. Please choose a different client number.")
     sys.exit(1)
+#API Endpoints--------------------------------------------------------
 
 print(f"Starting ATM Client {client_number} on port {port}...")
 
@@ -75,7 +77,7 @@ def signup():
 
 @app.route('/login', methods=['POST'])
 def login():
-    global encryption_key, mac_key, client_socket
+    global encryption_key, mac_key, client_socket, current_username
     username = request.form['username']
     password = request.form['password']
 
@@ -104,16 +106,19 @@ def login():
         encryption_key = base64.urlsafe_b64encode(derived_keys[:32])  # Encode the first 32 bytes
         mac_key = derived_keys[32:]  # Use the remaining 32 bytes for MAC
 
-        return render_template("action.html", result="Login Successful")
+        # Store the username in the global variable
+        current_username = username
+
+        return render_template("action.html", result="Login Successful", username=username)
     except Exception as e:
         if client_socket:
             client_socket.close()
             client_socket = None
         return render_template("login.html", result=f"Error: {str(e)}")
 
-@app.route('/action', methods=['POST'])
+@app.route('/action', methods=['GET', 'POST'])
 def do_action():
-    global encryption_key, mac_key, client_socket
+    global encryption_key, mac_key, client_socket, current_username
     action = request.form['action']
     amount = request.form.get('amount')
 
@@ -141,9 +146,9 @@ def do_action():
         print(f"[DEBUG] Received encrypted response: {response}")
         decrypted_response = fernet.decrypt(response).decode()
         print(f"[DEBUG] Decrypted response: {decrypted_response}")
-        return render_template("action.html", result=decrypted_response)
+        return render_template("action.html", result=decrypted_response, username=current_username)
     except Exception as e:
-        return render_template("action.html", result=f"Error: {str(e)}")
-
+        return render_template("action.html", result=f"Error: {str(e)}", username=current_username)
+#---------------------------------------------------------
 if __name__ == "__main__":
     app.run(port=port)
