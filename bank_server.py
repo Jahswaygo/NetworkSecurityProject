@@ -4,8 +4,8 @@ import json
 import hmac
 import hashlib
 import os
-import bcrypt  # Add this import
-import base64  # Add this import for key encoding
+import bcrypt  
+import base64  
 from datetime import datetime
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.hashes import SHA256
@@ -17,11 +17,13 @@ PORT = 65432
 # Global database and lock
 users = {}  # Store hashed passwords
 accounts = {}
-db_lock = threading.Lock()  # Lock for synchronizing access to shared resources
+db_lock = threading.Lock()  
 
 # Audit log encryption key
 audit_key = Fernet.generate_key()
 audit_fernet = Fernet(audit_key)
+
+#Helper functions --------------------------------------------------------
 
 def log_action_encrypted(client_id, action):
     """Log actions in an encrypted format."""
@@ -39,7 +41,6 @@ def log_action_plaintext(client_id, action):
     with open("audit_log_unencrypted.txt", "a") as f:
         f.write(log_entry)
 
-
 def log_action(client_id, action):
     """Call both logging functions for encrypted and plaintext logs."""
     log_action_encrypted(client_id, action)
@@ -47,6 +48,8 @@ def log_action(client_id, action):
 
 def handle_client(conn, addr):
     print(f"[CONNECTED] {addr}")
+    
+#Main Server Loop--------------------------------------------------------
 
     try:
         while True:
@@ -148,7 +151,7 @@ def handle_client(conn, addr):
         print(f"[ERROR] {addr}: {str(e)}")
     finally:
         conn.close()
-
+#----------------------------------------------------------------------
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind((HOST, PORT))

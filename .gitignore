@@ -1,0 +1,6 @@
+audit_log_unencrypted.txt
+audit_log.enc
+
+# Ignore virtual environments
+venv/
+**/venv/
