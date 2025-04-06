@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Signup</title>
+  <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/signup.css">
 </head>
 <body>
-  <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
+  <div class="signup-container">
     <h2>ATM Client Signup</h2>
-    <form action="/signup" method="post" style="background: white; padding: 20px; border-radius: 10px;">
+    <form action="/signup" method="post">
       <div>
         Username: <input type="text" name="username" /><br /><br />
         Password: <input type="password" name="password" /><br /><br />

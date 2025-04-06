@@ -1,5 +1,5 @@
 body {
-    
+    background-color: rgb(144, 193, 233);
   }
   
   input[type="text"], input[type="password"], input[type="submit"] {
@@ -16,4 +16,32 @@ body {
   
   input[type="submit"]:hover {
     background-color: #0056b3; 
+  }
+
+  .login-container {
+    background: white; /* White background for the box */
+    padding: 30px; /* Adds padding inside the box */
+    border-radius: 10px; /* Rounds the corners of the box */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
+    text-align: center; /* Centers the text inside the box */
+    width: 300px; /* Sets a fixed width for the box */
+  }
+  
+  .login-container h2 {
+    margin-bottom: 20px; /* Adds spacing below the heading */
+  }
+  
+  .login-container form {
+    margin-bottom: 20px; /* Adds spacing below the form */
+  }
+  
+  .login-container a {
+    display: inline-block; /* Ensures the link is treated like a button */
+    margin-top: 10px; /* Adds spacing above the link */
+    text-decoration: none; /* Removes underline from the link */
+    color: #007BFF; /* Sets the link color */
+  }
+  
+  .login-container a:hover {
+    text-decoration: underline; /* Adds underline on hover */
   }

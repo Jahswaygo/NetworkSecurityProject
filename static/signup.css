@@ -17,3 +17,31 @@ body {
   input[type="submit"]:hover {
     background-color: #0056b3; /* Optional: Darkens the button color on hover */
   }
+
+  .signup-container {
+    background: white; /* White background for the box */
+    padding: 30px; /* Adds padding inside the box */
+    border-radius: 10px; /* Rounds the corners of the box */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Adds a subtle shadow */
+    text-align: center; /* Centers the text inside the box */
+    width: 300px; /* Sets a fixed width for the box */
+  }
+  
+  .signup-container h2 {
+    margin-bottom: 20px; /* Adds spacing below the heading */
+  }
+  
+  .signup-container form {
+    margin-bottom: 20px; /* Adds spacing below the form */
+  }
+  
+  .signup-container a {
+    display: inline-block; /* Ensures the link is treated like a button */
+    margin-top: 10px; /* Adds spacing above the link */
+    text-decoration: none; /* Removes underline from the link */
+    color: #007BFF; /* Sets the link color */
+  }
+  
+  .signup-container a:hover {
+    text-decoration: underline; /* Adds underline on hover */
+  }

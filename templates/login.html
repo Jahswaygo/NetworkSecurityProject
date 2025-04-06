@@ -1,35 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="stylesheet" href="/static/login.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      font-family: Arial, sans-serif;
-    }
-    .login-container {
-      text-align: center;
-    }
-    form {
-      margin-top: 20px;
-    }
-  </style>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/login.css">
 </head>
 <body>
   <div class="login-container">
     <h2>ATM Client Login</h2>
     <form action="/login" method="post">
-      Username: <input type="text" name="username" /><br />
-      <br />
-      Password: <input type="password" name="password" /><br />
-      <br>
+      Username: <input type="text" name="username" /><br /><br />
+      Password: <input type="password" name="password" /><br /><br />
       <input type="submit" value="Login" />
     </form>
     <p>{{ result }}</p>

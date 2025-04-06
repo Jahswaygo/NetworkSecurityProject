@@ -3,13 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="/static/action.css">
   <title>ATM Action</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/action.css">
 </head>
 <body>
-  <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; text-align: center;">
+  <div class="action-container">
     <h2>ATM Client</h2>
-    <form action="/action" method="post" style="background: white; padding: 20px; border-radius: 10px;">
+    <h3>Welcome, {{ username }}</h3>
+    <form action="/action" method="post">
       <div>
         Action:
         <select name="action">

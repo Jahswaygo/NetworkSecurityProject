@@ -11,14 +11,11 @@ import sys
 import base64
 
 app = Flask(__name__)
-DEFAULT_GATEWAY = '127.0.0.1'
-SERVER_PORT = 65432
 
 # Global variables for session keys and socket
 encryption_key = None
 mac_key = None
 client_socket = None  # Persistent socket connection
-
 
 # Dynamically assign a port and client instance number
 if len(sys.argv) > 1:
@@ -33,7 +30,7 @@ port = 5000 + client_number  # Increment the port based on the client number
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
-            s.bind((DEFAULT_GATEWAY, port))
+            s.bind(('127.0.0.1', port))
         except OSError:
             return True
     return False
@@ -43,6 +40,8 @@ if is_port_in_use(port):
     sys.exit(1)
 
 print(f"Starting ATM Client {client_number} on port {port}...")
+
+#API Endpoints--------------------------------------------------------
 
 @app.route('/', methods=['GET'])
 def home():
@@ -58,7 +57,7 @@ def signup():
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((DEFAULT_GATEWAY, SERVER_PORT))
+            s.connect(('127.0.0.1', 65432))
 
             # Send signup request to server
             signup_data = {'action': 'signup', 'username': username, 'password': password}
@@ -82,7 +81,7 @@ def login():
     try:
         # Establish a persistent socket connection
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((DEFAULT_GATEWAY, SERVER_PORT))
+        client_socket.connect(('127.0.0.1', 65432))
 
         # Send username and password to server
         credentials = {'action': 'login', 'username': username, 'password': password}
@@ -104,7 +103,8 @@ def login():
         encryption_key = base64.urlsafe_b64encode(derived_keys[:32])  # Encode the first 32 bytes
         mac_key = derived_keys[32:]  # Use the remaining 32 bytes for MAC
 
-        return render_template("action.html", result="Login Successful")
+        # Pass the username to the action.html template
+        return render_template("action.html", result="Login Successful", username=username)
     except Exception as e:
         if client_socket:
             client_socket.close()
@@ -144,6 +144,8 @@ def do_action():
         return render_template("action.html", result=decrypted_response)
     except Exception as e:
         return render_template("action.html", result=f"Error: {str(e)}")
+
+#---------------------------------------------------------
 
 if __name__ == "__main__":
     app.run(port=port)
